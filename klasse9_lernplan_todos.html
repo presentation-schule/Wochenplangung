@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Klasse 9 · Lernplan KW23</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          fontFamily: { sans: ["Inter", "ui-sans-serif", "system-ui"] }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-screen bg-zinc-950 text-zinc-100">
+  <div class="mx-auto max-w-7xl px-4 py-6">
+    <header class="mb-6 flex flex-col gap-4 rounded-3xl border border-zinc-800 bg-zinc-900/70 p-5 shadow-2xl md:flex-row md:items-center md:justify-between">
+      <div>
+        <p class="flex items-center gap-2 text-sm text-violet-300"><i data-lucide="calendar-days" class="h-4 w-4"></i> 9. Klasse · KW23</p>
+        <h1 class="mt-1 text-3xl font-bold">Lernzeiten & Stundenplan</h1>
+        <p class="mt-1 text-zinc-400">Todos abhaken, eigene Aufgaben ergänzen und alles automatisch im Browser speichern.</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button id="resetBtn" class="rounded-2xl border border-red-900/60 bg-red-950/40 px-4 py-2 text-sm text-red-200 hover:bg-red-900/50">
+          <i data-lucide="rotate-ccw" class="mr-1 inline h-4 w-4"></i> Zurücksetzen
+        </button>
+        <button id="exportBtn" class="rounded-2xl border border-zinc-700 bg-zinc-800 px-4 py-2 text-sm hover:bg-zinc-700">
+          <i data-lucide="download" class="mr-1 inline h-4 w-4"></i> JSON exportieren
+        </button>
+      </div>
+    </header>
+
+    <section class="mb-6 grid gap-4 md:grid-cols-4">
+      <div class="rounded-3xl border border-zinc-800 bg-zinc-900 p-4">
+        <p class="text-sm text-zinc-400">Erledigt</p>
+        <p id="doneCount" class="mt-1 text-3xl font-bold">0</p>
+      </div>
+      <div class="rounded-3xl border border-zinc-800 bg-zinc-900 p-4">
+        <p class="text-sm text-zinc-400">Offen</p>
+        <p id="openCount" class="mt-1 text-3xl font-bold">0</p>
+      </div>
+      <div class="rounded-3xl border border-zinc-800 bg-zinc-900 p-4 md:col-span-2">
+        <label class="text-sm text-zinc-400">Neue Aufgabe</label>
+        <div class="mt-2 grid gap-2 md:grid-cols-[1fr_1fr_2fr_auto]">
+          <input id="newDay" placeholder="Tag" class="rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 outline-none focus:border-violet-500">
+          <input id="newTime" placeholder="Zeit" class="rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 outline-none focus:border-violet-500">
+          <input id="newTask" placeholder="Aufgabe" class="rounded-xl border border-zinc-700 bg-zinc-950 px-3 py-2 outline-none focus:border-violet-500">
+          <button id="addBtn" class="rounded-xl bg-violet-600 px-4 py-2 font-semibold hover:bg-violet-500">
+            <i data-lucide="plus" class="inline h-4 w-4"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <main class="grid gap-6 xl:grid-cols-[1fr_1.25fr]">
+      <section class="rounded-3xl border border-zinc-800 bg-zinc-900 p-5">
+        <h2 class="mb-4 flex items-center gap-2 text-xl font-bold"><i data-lucide="check-square" class="h-5 w-5 text-violet-300"></i> Lernzeiten-Todos</h2>
+        <div id="todoList" class="space-y-3"></div>
+      </section>
+
+      <section class="rounded-3xl border border-zinc-800 bg-zinc-900 p-5">
+        <h2 class="mb-4 flex items-center gap-2 text-xl font-bold"><i data-lucide="table-2" class="h-5 w-5 text-cyan-300"></i> Stundenplan</h2>
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[1000px] border-separate border-spacing-1 text-sm">
+            <thead>
+              <tr>
+                <th class="rounded-xl bg-zinc-800 p-3 text-left">Zeit</th>
+                <th class="rounded-xl bg-zinc-800 p-3">Montag</th>
+                <th class="rounded-xl bg-zinc-800 p-3">Dienstag</th>
+                <th class="rounded-xl bg-zinc-800 p-3">Mittwoch</th>
+                <th class="rounded-xl bg-zinc-800 p-3">Donnerstag</th>
+                <th class="rounded-xl bg-zinc-800 p-3">Freitag</th>
+              </tr>
+            </thead>
+            <tbody id="scheduleBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+<script>
+const defaultTodos = [
+  {day:"Montag", time:"11:00-11:30", subject:"Deutsch", task:"Sachtexte zusammenfassen (LE 7)", done:false},
+  {day:"Montag", time:"11:30-12:00", subject:"Deutsch", task:"Rechtschreibtraining + Sachtexte fertigstellen", done:false},
+  {day:"Montag", time:"12:00-12:30", subject:"Englisch", task:"FWR Memories Project / Revision", done:false},
+  {day:"Dienstag", time:"11:00-11:30", subject:"Mathe", task:"Rationale Zahlen üben", done:false},
+  {day:"Dienstag", time:"11:30-12:00", subject:"Chemie", task:"Chemische Reaktionen – Vorbereitung Abgabe", done:false},
+  {day:"Dienstag", time:"12:00-12:30", subject:"WEiSE", task:"Praktikumsbericht bearbeiten", done:false},
+  {day:"Mittwoch", time:"09:00-09:30", subject:"Französisch", task:"Unité 5 – Vokabeln & Übungen", done:false},
+  {day:"Mittwoch", time:"09:30-10:00", subject:"Französisch", task:"Unité 5 – Aufgaben fertigstellen", done:false},
+  {day:"Mittwoch", time:"11:30-12:00", subject:"Biologie", task:"Stoffwechsel – Hydrolyse wiederholen", done:false},
+  {day:"Mittwoch", time:"12:00-12:30", subject:"Physik", task:"Wärmelehre – Zusammenfassung", done:false},
+  {day:"Donnerstag", time:"11:00-11:30", subject:"Mathe", task:"Lineare Funktionen wiederholen", done:false},
+  {day:"Donnerstag", time:"11:30-12:00", subject:"Deutsch", task:"Jugendsprache / sprachsensibler Sprachgebrauch", done:false},
+  {day:"Donnerstag", time:"12:00-12:30", subject:"Physik", task:"Radioaktivität – Vorbereitung Abgabe", done:false},
+  {day:"Freitag", time:"10:30-11:00", subject:"Englisch", task:"Unit 4–6 Revision", done:false},
+  {day:"Freitag", time:"11:00-11:30", subject:"Latein", task:"Vokabeln Lektion 9 & Grammatik", done:false},
+  {day:"Freitag", time:"11:30-12:00", subject:"WEiSE", task:"Mind-Map & Praktikumsbericht abschließen", done:false}
+];
+
+const lessons = [
+  ["7:45-8:15", ["freie Arbeitszeit","freie Arbeitszeit","freie Arbeitszeit","freie Arbeitszeit","freie Arbeitszeit"]],
+  ["8:15-8:45", ["Wochenstartgruppe 9","Englisch +","Mathe +","Deutsch +","Tagesplanung / Lernzeit"]],
+  ["9:00-9:30", ["Deutsch","Französisch","Lernzeit","Thematisch Französisch","Englisch 3"]],
+  ["9:30-10:00", ["WEiSE","Chemie","Lernzeit","Thematisch Französisch","Englisch 3"]],
+  ["10:00-10:30", ["Mathe","Biologie","Mathe","Thematisch Französisch","Lernzeit"]],
+  ["11:00-11:30", ["Lernzeit","Lernzeit","Französisch","Französisch","Mathe"]],
+  ["11:30-12:00", ["Lernzeit","Lernzeit","Lernzeit","Deutsch","Wochenschlussgruppe"]],
+  ["12:00-12:30", ["Englisch 3","WEiSE","Lernzeit","Deutsch",""]],
+  ["13:30-15:00", ["Nachmittagsunterricht","Nachmittagsunterricht","Nachmittagsunterricht","Nachmittagsunterricht",""]]
+];
+
+const key = "klasse9_kw23_todos_v1";
+let todos = JSON.parse(localStorage.getItem(key) || "null") || defaultTodos;
+
+function save(){ localStorage.setItem(key, JSON.stringify(todos)); }
+
+function subjectColor(subject){
+  const map = {
+    Deutsch:"bg-blue-600/70 border-blue-400/40",
+    Mathe:"bg-red-600/70 border-red-400/40",
+    Mathematik:"bg-red-600/70 border-red-400/40",
+    Englisch:"bg-zinc-700 border-zinc-500/40",
+    Französisch:"bg-teal-600/70 border-teal-300/40",
+    Chemie:"bg-yellow-500/80 text-zinc-950 border-yellow-200/50",
+    Biologie:"bg-green-600/70 border-green-300/40",
+    WEiSE:"bg-purple-700/70 border-purple-300/40",
+    Physik:"bg-orange-600/70 border-orange-300/40",
+    Latein:"bg-amber-800/70 border-amber-400/40",
+    Lernzeit:"bg-zinc-800 border-zinc-700 text-zinc-300"
+  };
+  return map[subject] || "bg-zinc-800 border-zinc-700";
+}
+
+function renderTodos(){
+  const box = document.getElementById("todoList");
+  box.innerHTML = "";
+  todos.forEach((t, i) => {
+    const row = document.createElement("div");
+    row.className = "group rounded-2xl border border-zinc-800 bg-zinc-950/70 p-4";
+    row.innerHTML = `
+      <div class="flex gap-3">
+        <button onclick="toggleTodo(${i})" class="mt-1 h-6 w-6 rounded-lg border ${t.done ? "border-emerald-400 bg-emerald-500" : "border-zinc-600 bg-zinc-900"}">
+          ${t.done ? '<i data-lucide="check" class="h-5 w-5 text-zinc-950"></i>' : ""}
+        </button>
+        <div class="flex-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="rounded-full border px-2 py-0.5 text-xs ${subjectColor(t.subject)}">${t.subject}</span>
+            <span class="text-xs text-zinc-400">${t.day} · ${t.time}</span>
+          </div>
+          <input value="${escapeHtml(t.task)}" onchange="editTask(${i}, this.value)" class="mt-2 w-full bg-transparent text-base outline-none ${t.done ? "text-zinc-500 line-through" : "text-zinc-100"}">
+        </div>
+        <button onclick="deleteTodo(${i})" class="opacity-60 hover:text-red-300 hover:opacity-100"><i data-lucide="trash-2" class="h-5 w-5"></i></button>
+      </div>`;
+    box.appendChild(row);
+  });
+  document.getElementById("doneCount").textContent = todos.filter(t => t.done).length;
+  document.getElementById("openCount").textContent = todos.filter(t => !t.done).length;
+  lucide.createIcons();
+}
+
+function renderSchedule(){
+  const body = document.getElementById("scheduleBody");
+  body.innerHTML = "";
+  lessons.forEach(([time, days]) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td class="rounded-xl bg-zinc-800 p-3 font-semibold">${time}</td>` + days.map((cell, idx) => {
+      const dayNames = ["Montag","Dienstag","Mittwoch","Donnerstag","Freitag"];
+      const todo = todos.find(t => t.day === dayNames[idx] && t.time === time);
+      const content = todo ? `${cell}<br><span class="text-xs opacity-90">📝 ${todo.subject}: ${todo.task}</span>` : cell;
+      const base = cell.includes("Lernzeit") ? subjectColor("Lernzeit") : subjectColor(cell.split(" ")[0]);
+      return `<td class="rounded-xl border p-3 align-top ${base}">${content || "&nbsp;"}</td>`;
+    }).join("");
+    body.appendChild(tr);
+  });
+}
+
+function toggleTodo(i){ todos[i].done = !todos[i].done; save(); render(); }
+function editTask(i, value){ todos[i].task = value; save(); renderSchedule(); }
+function deleteTodo(i){ todos.splice(i,1); save(); render(); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
+
+document.getElementById("addBtn").onclick = () => {
+  const day = document.getElementById("newDay").value.trim();
+  const time = document.getElementById("newTime").value.trim();
+  const task = document.getElementById("newTask").value.trim();
+  if(!day || !time || !task) return;
+  todos.push({day, time, subject:"Eigene Aufgabe", task, done:false});
+  ["newDay","newTime","newTask"].forEach(id => document.getElementById(id).value = "");
+  save(); render();
+};
+
+document.getElementById("resetBtn").onclick = () => {
+  if(confirm("Alle Haken und Änderungen zurücksetzen?")){
+    todos = structuredClone(defaultTodos);
+    save(); render();
+  }
+};
+
+document.getElementById("exportBtn").onclick = () => {
+  const blob = new Blob([JSON.stringify(todos, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "klasse9-kw23-todos.json";
+  a.click();
+};
+
+function render(){ renderTodos(); renderSchedule(); }
+render();
+</script>
+</body>
+</html>
