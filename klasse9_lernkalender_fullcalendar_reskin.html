@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Klasse 9 · Lernkalender</title>
+
+  <!-- Open Source Calendar: FullCalendar (MIT) -->
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    :root {
+      --fc-border-color: rgb(39 39 42);
+      --fc-page-bg-color: #09090b;
+      --fc-neutral-bg-color: #18181b;
+      --fc-list-event-hover-bg-color: #27272a;
+      --fc-today-bg-color: rgba(124, 58, 237, .13);
+      --fc-now-indicator-color: #a78bfa;
+    }
+
+    body { background: #09090b; }
+
+    .fc {
+      --fc-button-bg-color: #7c3aed;
+      --fc-button-border-color: #7c3aed;
+      --fc-button-hover-bg-color: #6d28d9;
+      --fc-button-hover-border-color: #6d28d9;
+      --fc-button-active-bg-color: #5b21b6;
+      --fc-button-active-border-color: #5b21b6;
+      color: #f4f4f5;
+      font-family: Inter, ui-sans-serif, system-ui;
+    }
+
+    .fc .fc-toolbar-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -.03em;
+    }
+
+    .fc .fc-button {
+      border-radius: 14px;
+      padding: .55rem .8rem;
+      font-weight: 700;
+      box-shadow: none !important;
+    }
+
+    .fc .fc-scrollgrid, .fc .fc-timegrid-slot, .fc .fc-timegrid-axis,
+    .fc .fc-col-header-cell, .fc .fc-daygrid-day {
+      border-color: rgb(39 39 42) !important;
+    }
+
+    .fc .fc-col-header-cell {
+      background: #18181b;
+      padding: .55rem 0;
+    }
+
+    .fc .fc-timegrid-slot-label {
+      color: #a1a1aa;
+      font-size: .75rem;
+    }
+
+    .fc-event {
+      border-radius: 14px !important;
+      border: 1px solid rgba(255,255,255,.16) !important;
+      padding: 3px 6px !important;
+      box-shadow: 0 10px 25px rgba(0,0,0,.20);
+      cursor: pointer;
+    }
+
+    .fc-event-main { color: white !important; }
+    .fc-timegrid-event .fc-event-main { padding: 3px; }
+    .fc-daygrid-event { white-space: normal; }
+
+    .done-event {
+      opacity: .48;
+      filter: grayscale(.45);
+    }
+
+    .done-event .fc-event-title {
+      text-decoration: line-through;
+    }
+
+    .fc-license-message { display: none !important; }
+  </style>
+</head>
+
+<body class="min-h-screen text-zinc-100">
+  <div class="mx-auto max-w-7xl p-4 md:p-6">
+    <header class="mb-5 rounded-[2rem] border border-zinc-800 bg-zinc-900/80 p-5 shadow-2xl shadow-black/30">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <p class="flex items-center gap-2 text-sm font-semibold text-violet-300">
+            <i data-lucide="calendar-check" class="h-4 w-4"></i>
+            Open-Source Kalender · FullCalendar · localStorage
+          </p>
+          <h1 class="mt-1 text-3xl font-black tracking-tight md:text-4xl">Klasse 9 Lernkalender</h1>
+          <p class="mt-1 text-zinc-400">Klicke Termine an, um Todos abzuhaken. Änderungen bleiben lokal im Browser gespeichert.</p>
+        </div>
+
+        <div class="flex flex-wrap gap-2">
+          <button id="addBtn" class="rounded-2xl bg-violet-600 px-4 py-2 font-bold hover:bg-violet-500">
+            <i data-lucide="plus" class="mr-1 inline h-4 w-4"></i> Termin
+          </button>
+          <button id="exportBtn" class="rounded-2xl border border-zinc-700 bg-zinc-800 px-4 py-2 font-bold hover:bg-zinc-700">
+            <i data-lucide="download" class="mr-1 inline h-4 w-4"></i> Export
+          </button>
+          <button id="resetBtn" class="rounded-2xl border border-red-900/70 bg-red-950/40 px-4 py-2 font-bold text-red-200 hover:bg-red-900/50">
+            <i data-lucide="rotate-ccw" class="mr-1 inline h-4 w-4"></i> Reset
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-5 grid gap-3 md:grid-cols-4">
+        <div class="rounded-3xl border border-zinc-800 bg-zinc-950 p-4">
+          <p class="text-sm text-zinc-400">Offen</p>
+          <p id="openCount" class="text-3xl font-black">0</p>
+        </div>
+        <div class="rounded-3xl border border-zinc-800 bg-zinc-950 p-4">
+          <p class="text-sm text-zinc-400">Erledigt</p>
+          <p id="doneCount" class="text-3xl font-black text-emerald-300">0</p>
+        </div>
+        <div class="rounded-3xl border border-zinc-800 bg-zinc-950 p-4 md:col-span-2">
+          <p class="text-sm text-zinc-400">Schnellfilter</p>
+          <div id="filters" class="mt-2 flex flex-wrap gap-2"></div>
+        </div>
+      </div>
+    </header>
+
+    <main class="grid gap-5 xl:grid-cols-[320px_1fr]">
+      <aside class="rounded-[2rem] border border-zinc-800 bg-zinc-900/80 p-4">
+        <h2 class="mb-3 flex items-center gap-2 text-lg font-black">
+          <i data-lucide="list-checks" class="h-5 w-5 text-violet-300"></i>
+          Todos
+        </h2>
+        <div id="todoList" class="space-y-2"></div>
+      </aside>
+
+      <section class="rounded-[2rem] border border-zinc-800 bg-zinc-900/80 p-3 md:p-5">
+        <div id="calendar"></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="dialog" class="w-[min(92vw,560px)] rounded-3xl border border-zinc-700 bg-zinc-900 p-0 text-zinc-100 backdrop:bg-black/70">
+    <form method="dialog" class="p-5">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="text-xl font-black">Termin bearbeiten</h3>
+        <button class="rounded-xl p-2 hover:bg-zinc-800"><i data-lucide="x" class="h-5 w-5"></i></button>
+      </div>
+
+      <input id="editId" type="hidden">
+      <div class="grid gap-3 md:grid-cols-2">
+        <label class="text-sm text-zinc-400">Fach
+          <input id="editSubject" class="mt-1 w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none focus:border-violet-500">
+        </label>
+        <label class="text-sm text-zinc-400">Datum
+          <input id="editDate" type="date" class="mt-1 w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none focus:border-violet-500">
+        </label>
+        <label class="text-sm text-zinc-400">Start
+          <input id="editStart" type="time" class="mt-1 w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none focus:border-violet-500">
+        </label>
+        <label class="text-sm text-zinc-400">Ende
+          <input id="editEnd" type="time" class="mt-1 w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none focus:border-violet-500">
+        </label>
+        <label class="text-sm text-zinc-400 md:col-span-2">Aufgabe
+          <textarea id="editTask" rows="3" class="mt-1 w-full rounded-2xl border border-zinc-700 bg-zinc-950 px-3 py-2 text-zinc-100 outline-none focus:border-violet-500"></textarea>
+        </label>
+      </div>
+
+      <label class="mt-4 flex items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-950 p-3">
+        <input id="editDone" type="checkbox" class="h-5 w-5 accent-violet-600">
+        <span>Erledigt</span>
+      </label>
+
+      <div class="mt-5 flex flex-wrap justify-between gap-2">
+        <button id="deleteBtn" type="button" class="rounded-2xl border border-red-900/70 bg-red-950/40 px-4 py-2 font-bold text-red-200 hover:bg-red-900/50">
+          <i data-lucide="trash-2" class="mr-1 inline h-4 w-4"></i> Löschen
+        </button>
+        <div class="flex gap-2">
+          <button class="rounded-2xl border border-zinc-700 bg-zinc-800 px-4 py-2 font-bold hover:bg-zinc-700">Abbrechen</button>
+          <button id="saveBtn" type="button" class="rounded-2xl bg-violet-600 px-4 py-2 font-bold hover:bg-violet-500">
+            <i data-lucide="save" class="mr-1 inline h-4 w-4"></i> Speichern
+          </button>
+        </div>
+      </div>
+    </form>
+  </dialog>
+
+<script>
+const storageKey = "klasse9-fullcalendar-reskin-v2";
+let activeFilter = "Alle";
+
+const colors = {
+  Deutsch: "#2563eb",
+  Mathe: "#dc2626",
+  Mathematik: "#dc2626",
+  Englisch: "#3f3f46",
+  Französisch: "#0d9488",
+  Chemie: "#ca8a04",
+  Biologie: "#16a34a",
+  WEiSE: "#7e22ce",
+  Physik: "#ea580c",
+  Latein: "#92400e",
+  Lernzeit: "#52525b",
+  "Eigene Aufgabe": "#7c3aed"
+};
+
+const defaultEvents = [
+  {id:"m1", title:"Deutsch · Sachtexte zusammenfassen", subject:"Deutsch", task:"Sachtexte zusammenfassen (LE 7)", start:"2026-06-01T11:00:00", end:"2026-06-01T11:30:00", done:false},
+  {id:"m2", title:"Deutsch · Rechtschreibtraining", subject:"Deutsch", task:"Rechtschreibtraining + Sachtexte fertigstellen", start:"2026-06-01T11:30:00", end:"2026-06-01T12:00:00", done:false},
+  {id:"m3", title:"Englisch · Memories Project", subject:"Englisch", task:"FWR Memories Project / Revision", start:"2026-06-01T12:00:00", end:"2026-06-01T12:30:00", done:false},
+
+  {id:"d1", title:"Mathe · Rationale Zahlen", subject:"Mathe", task:"Rationale Zahlen üben", start:"2026-06-02T11:00:00", end:"2026-06-02T11:30:00", done:false},
+  {id:"d2", title:"Chemie · Reaktionen", subject:"Chemie", task:"Chemische Reaktionen – Vorbereitung Abgabe", start:"2026-06-02T11:30:00", end:"2026-06-02T12:00:00", done:false},
+  {id:"d3", title:"WEiSE · Praktikumsbericht", subject:"WEiSE", task:"Praktikumsbericht bearbeiten", start:"2026-06-02T12:00:00", end:"2026-06-02T12:30:00", done:false},
+
+  {id:"w1", title:"Französisch · Unité 5", subject:"Französisch", task:"Unité 5 – Vokabeln & Übungen", start:"2026-06-03T09:00:00", end:"2026-06-03T09:30:00", done:false},
+  {id:"w2", title:"Französisch · Aufgaben", subject:"Französisch", task:"Unité 5 – Aufgaben fertigstellen", start:"2026-06-03T09:30:00", end:"2026-06-03T10:00:00", done:false},
+  {id:"w3", title:"Biologie · Stoffwechsel", subject:"Biologie", task:"Stoffwechsel – Hydrolyse wiederholen", start:"2026-06-03T11:30:00", end:"2026-06-03T12:00:00", done:false},
+  {id:"w4", title:"Physik · Wärmelehre", subject:"Physik", task:"Wärmelehre – Zusammenfassung", start:"2026-06-03T12:00:00", end:"2026-06-03T12:30:00", done:false},
+
+  {id:"do1", title:"Mathe · Lineare Funktionen", subject:"Mathe", task:"Lineare Funktionen wiederholen", start:"2026-06-04T11:00:00", end:"2026-06-04T11:30:00", done:false},
+  {id:"do2", title:"Deutsch · Jugendsprache", subject:"Deutsch", task:"Jugendsprache / sprachsensibler Sprachgebrauch", start:"2026-06-04T11:30:00", end:"2026-06-04T12:00:00", done:false},
+  {id:"do3", title:"Physik · Radioaktivität", subject:"Physik", task:"Radioaktivität – Vorbereitung Abgabe", start:"2026-06-04T12:00:00", end:"2026-06-04T12:30:00", done:false},
+
+  {id:"f1", title:"Englisch · Unit 4–6 Revision", subject:"Englisch", task:"Unit 4–6 Revision", start:"2026-06-05T10:30:00", end:"2026-06-05T11:00:00", done:false},
+  {id:"f2", title:"Latein · Vokabeln", subject:"Latein", task:"Vokabeln Lektion 9 & Grammatik", start:"2026-06-05T11:00:00", end:"2026-06-05T11:30:00", done:false},
+  {id:"f3", title:"WEiSE · Abschluss", subject:"WEiSE", task:"Mind-Map & Praktikumsbericht abschließen", start:"2026-06-05T11:30:00", end:"2026-06-05T12:00:00", done:false}
+];
+
+let events = JSON.parse(localStorage.getItem(storageKey) || "null") || defaultEvents;
+let calendar;
+
+function saveStorage(){ localStorage.setItem(storageKey, JSON.stringify(events)); }
+
+function calendarEvents(){
+  return events
+    .filter(e => activeFilter === "Alle" || e.subject === activeFilter)
+    .map(e => ({
+      id: e.id,
+      title: e.title,
+      start: e.start,
+      end: e.end,
+      backgroundColor: colors[e.subject] || colors["Eigene Aufgabe"],
+      borderColor: colors[e.subject] || colors["Eigene Aufgabe"],
+      classNames: e.done ? ["done-event"] : [],
+      extendedProps: e
+    }));
+}
+
+function renderStats(){
+  document.getElementById("doneCount").textContent = events.filter(e => e.done).length;
+  document.getElementById("openCount").textContent = events.filter(e => !e.done).length;
+}
+
+function renderFilters(){
+  const subjects = ["Alle", ...Array.from(new Set(events.map(e => e.subject)))];
+  document.getElementById("filters").innerHTML = subjects.map(s => `
+    <button onclick="setFilter('${s}')" class="rounded-full border px-3 py-1 text-sm font-bold ${
+      activeFilter === s ? "border-violet-400 bg-violet-600 text-white" : "border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
+    }">${s}</button>
+  `).join("");
+}
+
+function renderTodoList(){
+  const sorted = [...events].sort((a,b) => a.start.localeCompare(b.start));
+  document.getElementById("todoList").innerHTML = sorted.map(e => `
+    <button onclick="openEditor('${e.id}')" class="w-full rounded-2xl border border-zinc-800 bg-zinc-950 p-3 text-left hover:border-violet-500/70">
+      <div class="flex items-start gap-2">
+        <span class="mt-1 h-3 w-3 shrink-0 rounded-full" style="background:${colors[e.subject] || colors["Eigene Aufgabe"]}"></span>
+        <div class="min-w-0">
+          <p class="font-bold ${e.done ? "text-zinc-500 line-through" : ""}">${escapeHtml(e.task)}</p>
+          <p class="mt-1 text-xs text-zinc-400">${formatDate(e.start)} · ${e.subject}</p>
+        </div>
+      </div>
+    </button>
+  `).join("");
+}
+
+function rerender(){
+  saveStorage();
+  renderStats();
+  renderFilters();
+  renderTodoList();
+  calendar.removeAllEvents();
+  calendar.addEventSource(calendarEvents());
+  lucide.createIcons();
+}
+
+function setFilter(s){ activeFilter = s; rerender(); }
+
+function openEditor(id){
+  const e = events.find(x => x.id === id);
+  if(!e) return;
+  editId.value = e.id;
+  editSubject.value = e.subject;
+  editTask.value = e.task;
+  editDate.value = e.start.slice(0,10);
+  editStart.value = e.start.slice(11,16);
+  editEnd.value = e.end.slice(11,16);
+  editDone.checked = e.done;
+  dialog.showModal();
+  lucide.createIcons();
+}
+
+function saveEditor(){
+  const id = editId.value || crypto.randomUUID();
+  const subject = editSubject.value.trim() || "Eigene Aufgabe";
+  const task = editTask.value.trim() || "Neue Aufgabe";
+  const date = editDate.value || "2026-06-01";
+  const start = `${date}T${editStart.value || "11:00"}:00`;
+  const end = `${date}T${editEnd.value || "11:30"}:00`;
+  const item = {
+    id, subject, task, start, end,
+    title: `${subject} · ${task}`,
+    done: editDone.checked
+  };
+  const index = events.findIndex(e => e.id === id);
+  if(index >= 0) events[index] = item;
+  else events.push(item);
+  dialog.close();
+  rerender();
+}
+
+function deleteCurrent(){
+  const id = editId.value;
+  events = events.filter(e => e.id !== id);
+  dialog.close();
+  rerender();
+}
+
+function addNew(){
+  editId.value = "";
+  editSubject.value = "Eigene Aufgabe";
+  editTask.value = "";
+  editDate.value = "2026-06-01";
+  editStart.value = "11:00";
+  editEnd.value = "11:30";
+  editDone.checked = false;
+  dialog.showModal();
+}
+
+function exportJson(){
+  const blob = new Blob([JSON.stringify(events, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "klasse9-lernkalender.json";
+  a.click();
+}
+
+function resetAll(){
+  if(confirm("Alles auf den Startplan zurücksetzen?")){
+    events = structuredClone(defaultEvents);
+    activeFilter = "Alle";
+    rerender();
+  }
+}
+
+function formatDate(iso){
+  return new Intl.DateTimeFormat("de-DE", {
+    weekday:"short", day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit"
+  }).format(new Date(iso));
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  calendar = new FullCalendar.Calendar(document.getElementById("calendar"), {
+    initialView: "timeGridWeek",
+    initialDate: "2026-06-01",
+    locale: "de",
+    firstDay: 1,
+    weekends: false,
+    nowIndicator: true,
+    editable: true,
+    selectable: true,
+    allDaySlot: false,
+    slotMinTime: "07:30:00",
+    slotMaxTime: "15:15:00",
+    height: "auto",
+    expandRows: true,
+    headerToolbar: {
+      left: "prev,next today",
+      center: "title",
+      right: "timeGridWeek,timeGridDay,listWeek"
+    },
+    buttonText: {
+      today: "Heute",
+      week: "Woche",
+      day: "Tag",
+      list: "Liste"
+    },
+    events: calendarEvents(),
+    eventClick: info => openEditor(info.event.id),
+    eventDrop: info => {
+      const e = events.find(x => x.id === info.event.id);
+      if(e){
+        e.start = info.event.start.toISOString().slice(0,19);
+        e.end = info.event.end ? info.event.end.toISOString().slice(0,19) : e.start;
+        saveStorage();
+        renderTodoList();
+      }
+    },
+    eventResize: info => {
+      const e = events.find(x => x.id === info.event.id);
+      if(e){
+        e.start = info.event.start.toISOString().slice(0,19);
+        e.end = info.event.end.toISOString().slice(0,19);
+        saveStorage();
+        renderTodoList();
+      }
+    },
+    select: info => {
+      editId.value = "";
+      editSubject.value = "Eigene Aufgabe";
+      editTask.value = "";
+      editDate.value = info.startStr.slice(0,10);
+      editStart.value = info.startStr.slice(11,16);
+      editEnd.value = info.endStr.slice(11,16);
+      editDone.checked = false;
+      dialog.showModal();
+    }
+  });
+
+  calendar.render();
+
+  addBtn.onclick = addNew;
+  exportBtn.onclick = exportJson;
+  resetBtn.onclick = resetAll;
+  saveBtn.onclick = saveEditor;
+  deleteBtn.onclick = deleteCurrent;
+
+  renderStats();
+  renderFilters();
+  renderTodoList();
+  lucide.createIcons();
+});
+</script>
+</body>
+</html>
